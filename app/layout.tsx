@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Libre_Caslon_Text, Hanken_Grotesk, Geist } from 'next/font/google';
+import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AppShell } from '@/components/AppShell';
@@ -33,14 +34,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${caslon.variable} ${hanken.variable} ${geist.variable}`}>
       <body className="font-sans antialiased bg-background text-on-background min-h-screen flex selection:bg-primary-container selection:text-on-primary-container">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AppShell>{children}</AppShell>
-        </ThemeProvider>
+        <ClerkProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <AppShell>{children}</AppShell>
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

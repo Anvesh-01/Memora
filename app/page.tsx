@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Network, ArrowRight, PlayCircle, Video, Brain, Library, FileQuestion, Subtitles } from 'lucide-react';
 
 export default function Page() {
@@ -8,10 +9,19 @@ export default function Page() {
           <Network className="text-primary w-6 h-6" />
           <span className="font-headline text-[24px] leading-[32px] font-semibold text-primary tracking-tight">Mnemosyne</span>
         </div>
-        <div>
-          <button className="bg-primary-container text-on-primary-container font-mono text-[14px] leading-[20px] font-medium tracking-wide px-4 py-2 rounded border border-transparent hover:bg-inverse-primary transition-colors">
-            Get Started
-          </button>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/sign-in"
+            className="font-mono text-[14px] leading-[20px] font-medium tracking-wide text-on-surface-variant transition-colors hover:text-primary"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/sign-up"
+            className="bg-primary-container text-on-primary-container font-mono text-[14px] leading-[20px] font-medium tracking-wide px-4 py-2 rounded border border-transparent hover:bg-inverse-primary transition-colors"
+          >
+            Sign up
+          </Link>
         </div>
       </header>
 
@@ -34,10 +44,13 @@ export default function Page() {
             </p>
             
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mt-4 w-full sm:w-auto">
-              <button className="bg-primary-container text-on-primary-container font-mono text-[14px] leading-[20px] font-medium tracking-wide px-6 py-3 rounded hover:bg-inverse-primary transition-colors flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+              <Link
+                href="/sign-up"
+                className="bg-primary-container text-on-primary-container font-mono text-[14px] leading-[20px] font-medium tracking-wide px-6 py-3 rounded hover:bg-inverse-primary transition-colors flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
+              >
                 Get Started
                 <ArrowRight className="w-[18px] h-[18px]" />
-              </button>
+              </Link>
               <button className="bg-transparent border border-outline-variant text-on-surface font-mono text-[14px] leading-[20px] font-medium tracking-wide px-6 py-3 rounded hover:bg-surface-variant transition-colors flex items-center justify-center gap-2">
                 <PlayCircle className="w-[18px] h-[18px]" />
                 Watch Demo
