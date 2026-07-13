@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { SignOutButton } from '@clerk/nextjs';
 import { Camera, Plus, Database, Cpu, Eye, Trash2 } from 'lucide-react';
 
 export default function Settings() {
@@ -173,7 +174,14 @@ export default function Settings() {
               <h2 className="font-headline-md text-[24px] text-error">Danger Zone</h2>
               <p className="font-body-md text-[16px] text-on-surface-variant mt-1">Irreversible actions regarding your data and account.</p>
             </div>
-            <button className="bg-error text-on-error font-label-md text-[14px] px-6 py-2.5 rounded hover:bg-on-error-container transition-colors shadow-sm">Delete Account & Data</button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <SignOutButton redirectUrl="/">
+                <button className="bg-surface-container text-on-surface font-label-md text-[14px] px-6 py-2.5 rounded border border-outline-variant hover:bg-surface-container-highest transition-colors shadow-sm">
+                  Sign Out
+                </button>
+              </SignOutButton>
+              <button className="bg-error text-on-error font-label-md text-[14px] px-6 py-2.5 rounded hover:bg-on-error-container transition-colors shadow-sm">Delete Account & Data</button>
+            </div>
           </div>
         </section>
 

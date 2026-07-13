@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { SignUp } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 export default function SignUpPage() {
+  const { userId } = auth();
+
+  if (userId) {
+    redirect("/dashboard");
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 py-10 text-white">
       <div className="grid w-full max-w-6xl gap-8 lg:grid-cols-[1fr_420px] lg:items-center">
@@ -25,7 +33,7 @@ export default function SignUpPage() {
         </section>
 
         <div className="rounded-4xl bg-white p-3 shadow-2xl shadow-black/30">
-          <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" forceRedirectUrl="/dashboard"/>
+          <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" forceRedirectUrl="/dashboard" />
         </div>
       </div>
     </main>

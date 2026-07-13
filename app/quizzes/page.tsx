@@ -1,152 +1,252 @@
-import Image from 'next/image';
-import { Sparkles, Timer, LineChart, Filter, ArrowUpDown, ListTodo, CheckCircle2, History } from 'lucide-react';
+"use client";
+
+import { useMemo, useState } from 'react';
+import { ArrowUpDown, CheckCircle2, Filter, History, LineChart, ListTodo, Sparkles, Timer } from 'lucide-react';
+import { createId, type QuizType, type WorkspaceQuiz } from '@/lib/workspace-store';
+import { useWorkspace } from '@/components/workspace-provider';
+
+const quizTypes: QuizType[] = ['MCQ', 'True/False', 'Coding', 'Interview', 'Fill Blanks'];
 
 export default function Quizzes() {
+  const { state, setState } = useWorkspace();
+  const [typeFilter, setTypeFilter] = useState<'all' | QuizType>('all');
+  const [collectionFilter, setCollectionFilter] = useState('all');
+  const [form, setForm] = useState({ title: '', type: 'MCQ' as QuizType, sourceTitle: '', questions: '10', duration: '10m', weakTopics: '' });
+
+  const visibleQuizzes = useMemo(() => state.quizzes.filter((quiz) => {
+    const matchesType = typeFilter === 'all' || quiz.type === typeFilter;
+    const matchesCollection = collectionFilter === 'all' || quiz.sourceTitle.toLowerCase().includes(collectionFilter.toLowerCase());
+    return matchesType && matchesCollection;
+  }), [collectionFilter, state.quizzes, typeFilter]);
+
+  const stats = useMemo(() => {
+    const completed = state.quizzes.filter((quiz) => quiz.status === 'completed');
+    const averageScore = completed.length ? Math.round(completed.reduce((total, quiz) => total + quiz.score, 0) / completed.length) : 0;
+    const averageAccuracy = completed.length ? Math.round(completed.reduce((total, quiz) => total + quiz.accuracy, 0) / completed.length) : 0;
+    const weakTopics = Array.from(new Set(completed.flatMap((quiz) => quiz.weakTopics)));
+
+    return { averageScore, averageAccuracy, completed: completed.length, weakTopics };
+  }, [state.quizzes]);
+
+  const generateFromLibrary = () => {
+    const generated = state.videos.filter((video) => video.status === 'ready').map((video) => ({
+      id: createId('quiz'),
+      title: `${video.title} Review`,
+      type: 'MCQ' as QuizType,
+      sourceTitle: video.title,
+      questions: Math.max(5, video.topics.length * 2 || 5),
+      duration: `${Math.max(5, video.topics.length * 3 || 10)}m`,
+      score: 0,
+      accuracy: 0,
+      weakTopics: video.topics.slice(0, 3),
+      status: 'new' as const,
+    }));
+
+    if (generated.length === 0) {
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      quizzes: [...generated, ...current.quizzes],
+    }));
+  };
+
+  const createQuiz = () => {
+    if (!form.title.trim()) {
+      return;
+    }
+
+    const nextQuiz: WorkspaceQuiz = {
+      id: createId('quiz'),
+      title: form.title.trim(),
+      type: form.type,
+      sourceTitle: form.sourceTitle.trim() || state.videos[0]?.title || 'Library',
+      questions: Number(form.questions) || 10,
+      duration: form.duration.trim() || '10m',
+      score: 0,
+      accuracy: 0,
+      weakTopics: form.weakTopics.split(',').map((topic) => topic.trim()).filter(Boolean),
+      status: 'new',
+    };
+
+    setState((current) => ({
+      ...current,
+      quizzes: [nextQuiz, ...current.quizzes],
+    }));
+
+    setForm({ title: '', type: 'MCQ', sourceTitle: '', questions: '10', duration: '10m', weakTopics: '' });
+  };
+
+  const updateQuiz = (id: string, patch: Partial<WorkspaceQuiz>) => {
+    setState((current) => ({
+      ...current,
+      quizzes: current.quizzes.map((quiz) => (quiz.id === id ? { ...quiz, ...patch } : quiz)),
+    }));
+  };
+
   return (
-    <div className="p-6 md:p-10 md:px-6 max-w-[1440px] mx-auto w-full">
-      <div className="mb-10">
-        <h2 className="font-display-lg text-[48px] text-on-background mb-2 leading-tight">Assessments</h2>
-        <p className="font-body-lg text-[18px] text-on-surface-variant max-w-3xl">Evaluate your comprehension across analyzed video lectures and research collections. AI-generated quizzes adapt to your knowledge graph gaps.</p>
+    <div className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-8 p-6 md:p-10">
+      <div className="mb-2">
+        <h1 className="font-display-lg text-[48px] text-on-background leading-tight">Quizzes</h1>
+        <p className="mt-2 max-w-3xl text-[18px] text-on-surface-variant">Generated from uploaded videos, flashcards, and collections. The page updates as your learning data changes.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-12">
-        {/* Recommended Quiz Hero */}
-        <div className="col-span-1 md:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden flex flex-col md:flex-row relative">
-          <div className="absolute inset-0 border-2 border-transparent rounded-xl pointer-events-none" style={{ background: 'linear-gradient(45deg, #0749a1, #94d0fd) border-box', WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'destination-out', maskComposite: 'exclude' }}></div>
-          <div className="md:w-2/5 h-48 md:h-auto relative">
-             <Image src="https://lh3.googleusercontent.com/aida-public/AB6AXuCB3xXoR-9HT-mWsMWWloyN3GnSb-cDu22peflcQhRUBe3apRhyw8lofBt3BntUVueXIHiBuJVAnqGS3vHZlTKcHMNk94VDPXG9oyIUynXBC0gDJyxw8dRjsOgSllVk45tCR3nRAxt_713zy577h1iKtHP1B3OXdiqwjZRoQRvUrTzOG8A_fwxI5ijpRBrJbAPGtl_PHRv5HpAjInNwREXp6CcKC30Tq8ACmqwnOBuWhuR6dWv379ki-Rh3W6PFLAHeGBtjWklV0uH_" alt="Thumb" fill className="object-cover" referrerPolicy="no-referrer"/>
-             <div className="absolute top-4 left-4 bg-primary-container text-on-primary-container px-3 py-1 rounded-full font-label-md text-[14px] flex items-center gap-1 shadow-sm">
-                <Sparkles className="w-4 h-4" /> Recommended
-             </div>
-          </div>
-          <div className="p-6 md:p-8 flex flex-col justify-center flex-1 z-10 bg-surface-container-lowest/80 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="px-2 py-0.5 bg-secondary-container text-on-secondary-container rounded font-code-sm text-[13px]">Collection: Quantum Mechanics</span>
-              <span className="text-on-surface-variant font-label-md text-[14px] flex items-center gap-1"><Timer className="w-4 h-4"/> 15 mins</span>
-            </div>
-            <h3 className="font-headline-lg text-[32px] leading-tight text-on-surface mb-2">Wave-Particle Duality Synthesis</h3>
-            <p className="font-body-md text-[16px] text-on-surface-variant mb-6">Generated from your recent viewing of &quot;Feynman Lectures&quot; and &quot;Double Slit Experiment Visualized&quot;. Focuses on bridging conceptual gaps identified in your last session.</p>
-            <div className="flex items-center justify-between mt-auto">
-              <div className="flex -space-x-2">
-                <div className="w-8 h-8 rounded-full border-2 border-surface bg-surface-dim flex items-center justify-center font-label-md text-xs text-on-surface">20Q</div>
-                <div className="w-8 h-8 rounded-full border-2 border-surface bg-surface-dim flex items-center justify-center font-label-md text-xs text-on-surface">MC</div>
+      <section className="grid gap-6 md:grid-cols-12">
+        <div className="relative overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 md:col-span-8">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10" />
+          <div className="relative z-10 flex h-full flex-col justify-between gap-6">
+            <div>
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-outline-variant bg-surface px-3 py-1 text-sm text-on-surface-variant">
+                <Sparkles className="h-4 w-4 text-primary" /> Recommended assessment
               </div>
-              <button className="bg-primary text-on-primary px-6 py-2 rounded-lg font-label-md text-[14px] hover:bg-primary-container transition-colors shadow-sm">Start Assessment</button>
+              <h2 className="text-[32px] font-semibold text-on-surface">Build a quiz from your current learning set</h2>
+              <p className="mt-2 max-w-2xl text-[16px] text-on-surface-variant">Pick a source, choose the type, and create assessments that reflect the videos and collections you actually upload.</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 text-sm text-on-surface-variant">
+              <span className="rounded-full bg-secondary-container px-3 py-1 text-on-secondary-container">MCQ</span>
+              <span className="rounded-full bg-secondary-container px-3 py-1 text-on-secondary-container">True/False</span>
+              <span className="rounded-full bg-secondary-container px-3 py-1 text-on-secondary-container">Coding</span>
+              <span className="rounded-full bg-secondary-container px-3 py-1 text-on-secondary-container">Interview</span>
+              <span className="rounded-full bg-secondary-container px-3 py-1 text-on-secondary-container">Fill Blanks</span>
             </div>
           </div>
         </div>
 
-        {/* Stats Panel */}
-        <div className="col-span-1 md:col-span-4 flex flex-col gap-6">
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex-1">
-            <h4 className="font-headline-md text-[24px] text-on-surface mb-6 flex items-center gap-2">
-              <LineChart className="w-6 h-6 text-primary" /> Performance Overview
-            </h4>
-            <div className="space-y-6">
-              <div>
-                <div className="flex justify-between font-label-md text-[14px] mb-2">
-                  <span className="text-on-surface-variant">Average Score</span>
-                  <span className="text-on-surface font-bold">84%</span>
+        <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 md:col-span-4">
+          <h3 className="mb-4 flex items-center gap-2 text-[22px] font-semibold text-on-surface"><LineChart className="h-5 w-5 text-primary" /> Performance overview</h3>
+          <div className="space-y-5">
+            <div>
+              <div className="mb-2 flex justify-between text-sm">
+                <span className="text-on-surface-variant">Average score</span>
+                <span className="font-medium text-on-surface">{stats.averageScore}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-surface-container">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${stats.averageScore}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="mb-2 flex justify-between text-sm">
+                <span className="text-on-surface-variant">Average accuracy</span>
+                <span className="font-medium text-on-surface">{stats.averageAccuracy}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-surface-container">
+                <div className="h-full rounded-full bg-secondary" style={{ width: `${stats.averageAccuracy}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="mb-2 flex justify-between text-sm">
+                <span className="text-on-surface-variant">Assessments completed</span>
+                <span className="font-medium text-on-surface">{stats.completed}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 border-t border-outline-variant pt-5">
+            <p className="mb-3 text-sm font-medium text-on-surface">Weak topics</p>
+            <div className="flex flex-wrap gap-2">
+              {stats.weakTopics.length > 0 ? stats.weakTopics.map((topic) => <span key={topic} className="rounded-full border border-outline-variant px-3 py-1 text-xs text-on-surface-variant">{topic}</span>) : <span className="text-sm text-on-surface-variant">No completed quizzes yet.</span>}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-outline-variant bg-surface-container-lowest p-6">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h3 className="text-[22px] font-semibold text-on-surface">Create or filter quizzes</h3>
+            <p className="mt-1 text-sm text-on-surface-variant">Generate a quiz from your library, or add a custom assessment manually.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={generateFromLibrary} className="inline-flex items-center gap-2 rounded-lg border border-outline-variant px-4 py-2 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-low"><Sparkles className="h-4 w-4" /> Generate from Library</button>
+            <button onClick={createQuiz} className="inline-flex items-center gap-2 rounded-lg bg-primary-container px-4 py-2 text-sm font-medium text-on-primary-container transition-colors hover:bg-primary hover:text-on-primary"><ListTodo className="h-4 w-4" /> Save Quiz</button>
+          </div>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className="rounded-xl border border-outline-variant bg-surface px-4 py-3 text-sm outline-none" placeholder="Quiz title" />
+            <select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value as QuizType }))} className="rounded-xl border border-outline-variant bg-surface px-4 py-3 text-sm outline-none">
+              {quizTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+            </select>
+            <input value={form.sourceTitle} onChange={(event) => setForm((current) => ({ ...current, sourceTitle: event.target.value }))} className="rounded-xl border border-outline-variant bg-surface px-4 py-3 text-sm outline-none" placeholder="Source title" />
+            <input value={form.questions} onChange={(event) => setForm((current) => ({ ...current, questions: event.target.value }))} className="rounded-xl border border-outline-variant bg-surface px-4 py-3 text-sm outline-none" placeholder="Questions" />
+            <input value={form.duration} onChange={(event) => setForm((current) => ({ ...current, duration: event.target.value }))} className="rounded-xl border border-outline-variant bg-surface px-4 py-3 text-sm outline-none" placeholder="Duration" />
+            <input value={form.weakTopics} onChange={(event) => setForm((current) => ({ ...current, weakTopics: event.target.value }))} className="rounded-xl border border-outline-variant bg-surface px-4 py-3 text-sm outline-none md:col-span-2 lg:col-span-3 xl:col-span-5" placeholder="Weak topics, comma separated" />
+          </div>
+
+          <aside className="space-y-3 rounded-2xl border border-outline-variant bg-surface p-4">
+            <label className="flex items-center gap-2 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3">
+              <Filter className="h-4 w-4 text-on-surface-variant" />
+              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as typeof typeFilter)} className="w-full bg-transparent text-sm outline-none">
+                <option value="all">All Types</option>
+                {quizTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+              </select>
+            </label>
+            <label className="flex items-center gap-2 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3">
+              <ArrowUpDown className="h-4 w-4 text-on-surface-variant" />
+              <select value={collectionFilter} onChange={(event) => setCollectionFilter(event.target.value)} className="w-full bg-transparent text-sm outline-none">
+                <option value="all">All Sources</option>
+                {state.collections.map((collection) => <option key={collection.id} value={collection.name}>{collection.name}</option>)}
+              </select>
+            </label>
+            <div className="rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest p-4 text-sm text-on-surface-variant">
+              Quiz data is derived from your uploaded videos, collections, and existing assessments.
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-outline-variant bg-surface-container-lowest p-6">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-[22px] font-semibold text-on-surface">Available quizzes</h3>
+            <p className="mt-1 text-sm text-on-surface-variant">Generated assessments and completed quizzes are shown here.</p>
+          </div>
+          <div className="rounded-xl border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface-variant">{visibleQuizzes.length} quizzes</div>
+        </div>
+
+        {visibleQuizzes.length > 0 ? (
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {visibleQuizzes.map((quiz) => (
+              <article key={quiz.id} className="flex flex-col rounded-2xl border border-outline-variant bg-surface p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="rounded-full bg-surface-container-high px-3 py-1 text-xs text-on-surface-variant">{quiz.type}</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${quiz.status === 'completed' ? 'bg-primary/10 text-primary' : 'bg-secondary-container text-on-secondary-container'}`}>{quiz.status}</span>
                 </div>
-                <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
-                  <div className="bg-primary h-full rounded-full" style={{width: '84%'}}></div>
+
+                <h4 className="mt-4 text-[20px] font-semibold text-on-surface">{quiz.title}</h4>
+                <p className="mt-2 text-sm text-on-surface-variant">Source: {quiz.sourceTitle}</p>
+
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-on-surface-variant">
+                  <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-3"><ListTodo className="h-4 w-4 text-primary" /><p className="mt-2 text-on-surface">{quiz.questions} questions</p></div>
+                  <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-3"><Timer className="h-4 w-4 text-primary" /><p className="mt-2 text-on-surface">{quiz.duration}</p></div>
+                  <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-3"><CheckCircle2 className="h-4 w-4 text-primary" /><p className="mt-2 text-on-surface">{quiz.score}% score</p></div>
+                  <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-3"><LineChart className="h-4 w-4 text-primary" /><p className="mt-2 text-on-surface">{quiz.accuracy}% accuracy</p></div>
                 </div>
-              </div>
-              <div>
-                <div className="flex justify-between font-label-md text-[14px] mb-2">
-                  <span className="text-on-surface-variant">Assessments Completed</span>
-                  <span className="text-on-surface font-bold">12 / 15</span>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {quiz.weakTopics.length > 0 ? quiz.weakTopics.map((topic) => <span key={topic} className="rounded-full border border-outline-variant px-2.5 py-1 text-xs text-on-surface-variant">{topic}</span>) : <span className="text-sm text-on-surface-variant">No weak topics recorded.</span>}
                 </div>
-                <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
-                  <div className="bg-secondary h-full rounded-full" style={{width: '80%'}}></div>
+
+                <div className="mt-auto pt-5 flex gap-2">
+                  <button onClick={() => updateQuiz(quiz.id, { status: 'completed', score: Math.max(quiz.score, 80), accuracy: Math.max(quiz.accuracy, 80) })} className="flex-1 rounded-lg border border-outline-variant px-3 py-2 text-sm hover:bg-surface-container-highest">Mark Completed</button>
+                  <button onClick={() => updateQuiz(quiz.id, { score: Math.min(100, quiz.score + 5), accuracy: Math.min(100, quiz.accuracy + 5) })} className="flex-1 rounded-lg border border-outline-variant px-3 py-2 text-sm hover:bg-surface-container-highest">Retake</button>
                 </div>
-              </div>
-            </div>
-            
-            <div className="mt-8 pt-6 border-t border-outline-variant">
-              <p className="font-label-md text-[14px] text-on-surface-variant mb-3">Strongest Domains</p>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-1 border border-outline-variant rounded-full font-code-sm text-[13px] text-on-surface">Linear Algebra</span>
-                <span className="px-3 py-1 border border-outline-variant rounded-full font-code-sm text-[13px] text-on-surface">Deep Learning</span>
-              </div>
-            </div>
+              </article>
+            ))}
           </div>
-        </div>
-      </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-outline-variant bg-surface p-8 text-sm text-on-surface-variant">No quizzes match your filters yet. Generate one from the library or save a custom quiz.</div>
+        )}
+      </section>
 
-      {/* Library Section */}
-      <div className="mb-6 flex flex-col sm:flex-row justify-between sm:items-end gap-4">
-        <div>
-          <h3 className="font-headline-lg text-[32px] text-on-background">Available Quizzes</h3>
-          <p className="font-body-md text-[16px] text-on-surface-variant mt-1">Generated from your library and knowledge graph.</p>
-        </div>
-        <div className="flex gap-2">
-          <button className="px-4 py-2 border border-outline-variant rounded-lg font-label-md text-[14px] text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2">
-            <Filter className="w-4 h-4"/> Filter
-          </button>
-          <button className="px-4 py-2 border border-outline-variant rounded-lg font-label-md text-[14px] text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2">
-            <ArrowUpDown className="w-4 h-4"/> Sort
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-        {/* Quiz 1 */}
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 hover:border-primary transition-colors group flex flex-col">
-          <div className="flex justify-between items-start mb-4">
-            <span className="px-2 py-0.5 bg-surface-container text-on-surface rounded font-code-sm text-[13px]">Video Lecture</span>
-            <span className="text-secondary font-label-md text-[14px] bg-secondary-fixed px-2 py-0.5 rounded-full">New</span>
-          </div>
-          <h4 className="font-headline-md text-[24px] text-on-surface mb-2 group-hover:text-primary transition-colors leading-tight">Advanced CNN Architectures</h4>
-          <p className="font-body-md text-[16px] text-on-surface-variant mb-6 flex-1 line-clamp-2">Test your understanding of ResNet, Inception, and Attention mechanisms discussed in Lecture 4.</p>
-          <div className="border-t border-outline-variant pt-4 mt-auto">
-            <div className="flex justify-between items-center mb-4 text-on-surface-variant font-label-md text-[14px]">
-              <span className="flex items-center gap-1"><ListTodo className="w-4 h-4"/> 10 Questions</span>
-              <span className="flex items-center gap-1"><Timer className="w-4 h-4"/> 10m</span>
-            </div>
-            <button className="w-full py-2 border border-primary text-primary rounded-lg font-label-md text-[14px] hover:bg-primary-fixed transition-colors">Start Quiz</button>
-          </div>
-        </div>
-
-        {/* Quiz 2 Completed */}
-        <div className="bg-surface border border-outline-variant rounded-xl p-5 flex flex-col opacity-90">
-          <div className="flex justify-between items-start mb-4">
-            <span className="px-2 py-0.5 bg-surface-container-highest text-on-surface rounded font-code-sm text-[13px]">Collection: Data Structs</span>
-            <span className="text-primary font-label-md text-[14px] flex items-center gap-1"><CheckCircle2 className="w-4 h-4"/> Completed</span>
-          </div>
-          <h4 className="font-headline-md text-[24px] text-on-surface mb-2 leading-tight">Graph Traversal Algorithms</h4>
-          <p className="font-body-md text-[16px] text-on-surface-variant mb-6 flex-1 line-clamp-2">Comprehensive review of BFS, DFS, Dijkstra&apos;s, and A* search methodologies.</p>
-          <div className="border-t border-outline-variant pt-4 mt-auto">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex flex-col">
-                <span className="font-label-md text-[14px] text-on-surface-variant text-xs">High Score</span>
-                <span className="font-headline-md text-[24px] text-primary">92%</span>
-              </div>
-              <span className="font-label-md text-[14px] text-on-surface-variant flex items-center gap-1 text-sm"><History className="w-4 h-4"/> 2 days ago</span>
-            </div>
-            <button className="w-full py-2 border border-outline-variant text-on-surface-variant rounded-lg font-label-md text-[14px] hover:bg-surface-container-low transition-colors">Retake Quiz</button>
-          </div>
-        </div>
-
-        {/* Quiz 3 AI Gen */}
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 hover:border-primary transition-colors group flex flex-col relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none" style={{background: 'radial-gradient(circle at top right, rgba(7, 73, 161, 0.1) 0%, transparent 70%)'}}></div>
-          <div className="flex justify-between items-start mb-4 relative z-10">
-            <span className="px-2 py-0.5 bg-surface-container text-on-surface rounded font-code-sm text-[13px]">Custom Generation</span>
-            <span title="AI Generated"><Sparkles className="text-primary w-4 h-4" /></span>
-          </div>
-          <h4 className="font-headline-md text-[24px] text-on-surface mb-2 group-hover:text-primary transition-colors leading-tight relative z-10">Statistical Mechanics Midterm Prep</h4>
-          <p className="font-body-md text-[16px] text-on-surface-variant mb-6 flex-1 line-clamp-2 relative z-10">Synthesized from 3 distinct video sources. Focus on partition functions and thermodynamic potentials.</p>
-          <div className="border-t border-outline-variant pt-4 mt-auto relative z-10">
-            <div className="flex justify-between items-center mb-4 text-on-surface-variant font-label-md text-[14px]">
-              <span className="flex items-center gap-1"><ListTodo className="w-4 h-4"/> 25 Questions</span>
-              <span className="flex items-center gap-1"><Timer className="w-4 h-4"/> 30m</span>
-            </div>
-            <button className="w-full py-2 border border-primary text-primary rounded-lg font-label-md text-[14px] hover:bg-primary-fixed transition-colors bg-surface-container-lowest">Start Quiz</button>
-          </div>
-        </div>
-
-      </div>
+      {state.quizzes.length === 0 && (
+        <section className="rounded-[2rem] border border-dashed border-outline-variant bg-surface-container-lowest p-6 text-sm text-on-surface-variant">
+          No quizzes exist yet. Add videos first, then generate assessments from those sources.
+        </section>
+      )}
     </div>
   );
 }

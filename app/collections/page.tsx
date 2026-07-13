@@ -1,116 +1,202 @@
-import Image from 'next/image';
-import { Plus, PlayCircle, Video, FolderPlus, BrainCircuit } from 'lucide-react';
+"use client";
+
+import { useMemo, useState } from 'react';
+import { BrainCircuit, FolderPlus, Plus, Video, FileText, GalleryVertical, HelpCircle, Tag } from 'lucide-react';
+import { createId } from '@/lib/workspace-store';
+import { useWorkspace } from '@/components/workspace-provider';
 
 export default function Collections() {
+  const { state, setState } = useWorkspace();
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(state.collections[0]?.id ?? null);
+  const [form, setForm] = useState({ name: '', description: '', tags: '' });
+
+  const selectedCollection = useMemo(
+    () => state.collections.find((collection) => collection.id === selectedCollectionId) ?? state.collections[0] ?? null,
+    [selectedCollectionId, state.collections],
+  );
+
+  const collectionSummary = useMemo(() => {
+    return state.collections.map((collection) => {
+      const videos = state.videos.filter((video) => video.collectionIds.includes(collection.id));
+      const flashcards = state.flashcards.filter((card) => card.collectionId === collection.id);
+      const quizzes = state.quizzes.filter((quiz) => quiz.sourceTitle.includes(collection.name));
+
+      return {
+        ...collection,
+        videos,
+        flashcards,
+        quizzes,
+        notes: videos.map((video) => video.notes).filter(Boolean),
+      };
+    });
+  }, [state.collections, state.flashcards, state.quizzes, state.videos]);
+
+  const createCollection = () => {
+    if (!form.name.trim()) {
+      return;
+    }
+
+    const nextCollection = {
+      id: createId('collection'),
+      name: form.name.trim(),
+      description: form.description.trim(),
+      tags: form.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+      color: ['#0749a1', '#0f766e', '#a855f7', '#ea580c', '#14532d'][state.collections.length % 5],
+    };
+
+    setState((current) => ({
+      ...current,
+      collections: [nextCollection, ...current.collections],
+    }));
+
+    setSelectedCollectionId(nextCollection.id);
+    setForm({ name: '', description: '', tags: '' });
+  };
+
+  const linkedVideos = selectedCollection ? state.videos.filter((video) => video.collectionIds.includes(selectedCollection.id)) : [];
+  const linkedFlashcards = selectedCollection ? state.flashcards.filter((card) => card.collectionId === selectedCollection.id) : [];
+  const linkedQuizzes = selectedCollection ? state.quizzes.filter((quiz) => quiz.sourceTitle.toLowerCase().includes(selectedCollection.name.toLowerCase())) : [];
+
   return (
-    <div className="p-6 md:p-10 flex-1 max-w-[1440px] mx-auto w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-        <div>
-          <h2 className="font-headline-lg text-[32px] text-on-surface mb-1">Collections</h2>
-          <p className="font-body-md text-[16px] text-on-surface-variant">Organize and curate your video knowledge base.</p>
-        </div>
-        <button className="bg-primary-container text-on-primary-container font-label-md text-[14px] px-4 py-2 rounded-lg hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-2 shadow-sm border border-transparent">
-          <Plus className="w-5 h-5" />
-          New Collection
-        </button>
+    <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-8 p-6 md:p-10">
+      <div className="flex flex-col gap-3">
+        <h1 className="font-display-lg text-[48px] leading-tight text-on-background">Collections</h1>
+        <p className="max-w-3xl text-[18px] text-on-surface-variant">Organize videos into focused sets like AI, Python, Django, JavaScript, Machine Learning, Interview Prep, or College.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        
-        {/* Collection 1 */}
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden hover:border-primary transition-colors group cursor-pointer flex flex-col h-full">
-          <div className="h-32 relative bg-surface-container p-2 flex gap-1 overflow-hidden">
-            <div className="w-2/3 h-full rounded border border-outline-variant relative overflow-hidden">
-              <Image src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcGBhMfyCFulyi3SUad-YRk5O8dAfq1LjbtY8hvMyFIl1hvPh7qlJUvvugr0_IHazvmLENTzG5EQTLKOylRiggLscQfRP4bDiGn6Qk7S_trbyd5LDe9KUh2t6kex6AYDqR2mDnsCQz26VZJgn6F2QT8ID6FLBDfR8OebWEYg9JduELC924JQNyymFXPJkyWqxXZS-CCDTGhp3YRAtYCSi2OMjbk6wpbjWpwrb3o95YKSkBcNh4A5NTJsXVkYRkFmECawr7tGcAnn5q" alt="Thumb" fill className="object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300" referrerPolicy="no-referrer"/>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-              <span className="absolute bottom-1 right-1 text-[10px] text-white bg-black/70 px-1 rounded font-code-sm">1:24:00</span>
+      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+        <section className="rounded-[2rem] border border-outline-variant bg-surface-container-lowest p-6">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-[22px] font-semibold text-on-surface">Your collections</h2>
+              <p className="mt-1 text-sm text-on-surface-variant">Each collection can hold videos, notes, flashcards, and quizzes.</p>
             </div>
-            <div className="w-1/3 flex flex-col gap-1 h-full">
-              <div className="h-1/2 w-full rounded border border-outline-variant relative overflow-hidden bg-surface-container-high">
-                <Image src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-3MshwRGq2K-JJVG7dx-R8xY8Duk1s518W33irUJLPs2VO0ckMIxsVtCxmjEfLcLoyyalyjTMrSyb1xyF1rtENOmeYlqm3Nl4eMfaf9xhQPvPpQ5HQN627rAceNG6iBHYAH0TNDH0ekpbaTCSKFVFjdPMNscU0fP_Os-rs_wGllSA53Ixkh4R1h_SfxEJJiHGC1ID94FSoQRoWRIGTgLxAaybvjoWsCQF8CJ5GvcWEjj7yRpI0j-zevHqt5Jh6rSbge19ypTFS109" alt="Thumb" fill className="object-cover grayscale opacity-70" referrerPolicy="no-referrer"/>
-              </div>
-              <div className="h-1/2 w-full rounded border border-outline-variant bg-surface-container flex items-center justify-center text-on-surface-variant text-xs font-label-md">
-                  +12
-              </div>
-            </div>
-            <div className="absolute inset-0 bg-surface-tint/0 group-hover:bg-surface-tint/5 transition-colors flex items-center justify-center pointer-events-none">
-                <PlayCircle className="w-12 h-12 text-transparent group-hover:text-primary transition-colors" />
+            <div className="rounded-2xl border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface-variant">
+              {state.collections.length} total collections
             </div>
           </div>
-          <div className="p-4 flex flex-col flex-1">
-            <h3 className="font-headline-md text-[20px] text-on-surface mb-1 group-hover:text-primary transition-colors">Stanford CS229</h3>
-            <p className="font-code-sm text-[13px] text-on-surface-variant mb-4 line-clamp-2">Machine Learning complete course lectures, transcriptions, and extracted formula flashcards.</p>
-            <div className="mt-auto flex items-center justify-between pt-3 border-t border-outline-variant/50">
-              <div className="flex items-center gap-1.5 text-on-surface-variant">
-                <Video className="w-4 h-4" />
-                <span className="font-label-md text-[12px]">14 Videos</span>
-              </div>
-              <div className="font-code-sm text-[11px] text-outline">Updated 2h ago</div>
-            </div>
-          </div>
-        </div>
 
-        {/* Collection 2 */}
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden hover:border-primary transition-colors group cursor-pointer flex flex-col h-full">
-          <div className="h-32 relative bg-surface-container p-2 flex gap-1 overflow-hidden">
-            <div className="w-full h-full rounded border border-outline-variant relative overflow-hidden">
-              <Image src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZtFrYDEhds9AjMniR3Qcv0Wvd60vSfjsC_f3yxDulcWMdlsSHrC27kACNOSUQjjSV1PEnP0lG80uwiF7LelNN-WEBfTrSLFsIkgoZ9QXqsTmJrVEf6LeHiAONLczkIFI4lC9UNn6UWCS7jNAWH8WJJqdSRwnd4ZC4_SIBB3u1KPg2L_Hhla7pwEOjOXiFibZ-RJz4JHNNe6XuQTg4NDMKe-fApA1k8cfF50qvnNqPdr6yzmvo9MHD4ielDqLF68MxisVVooSYbQxv" alt="Thumb" fill className="object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300" referrerPolicy="no-referrer"/>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-              <div className="absolute top-2 right-2 bg-surface-container-highest/80 backdrop-blur-sm rounded px-2 py-0.5 border border-outline-variant/50">
-                <span className="font-label-md text-[10px] text-on-surface">Confidential</span>
+          {collectionSummary.length > 0 ? (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {collectionSummary.map((collection) => {
+                const isActive = collection.id === selectedCollection?.id;
+
+                return (
+                  <button
+                    key={collection.id}
+                    onClick={() => setSelectedCollectionId(collection.id)}
+                    className={`flex h-full flex-col rounded-2xl border p-5 text-left transition-colors ${isActive ? 'border-primary bg-primary/5' : 'border-outline-variant bg-surface hover:border-primary'}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-[20px] font-semibold text-on-surface">{collection.name}</h3>
+                        <p className="mt-1 text-sm text-on-surface-variant">{collection.description || 'No description yet.'}</p>
+                      </div>
+                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: collection.color }} />
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {collection.tags.length > 0 ? collection.tags.map((tag) => (
+                        <span key={tag} className="inline-flex items-center gap-1 rounded-full border border-outline-variant bg-surface px-2.5 py-1 text-xs text-on-surface-variant">
+                          <Tag className="h-3 w-3" /> {tag}
+                        </span>
+                      )) : (
+                        <span className="text-sm text-on-surface-variant">No tags yet.</span>
+                      )}
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-on-surface-variant">
+                      <div className="rounded-xl border border-outline-variant bg-surface p-3"><Video className="h-4 w-4 text-primary" /><p className="mt-2 text-on-surface">{collection.videos.length} videos</p></div>
+                      <div className="rounded-xl border border-outline-variant bg-surface p-3"><FileText className="h-4 w-4 text-primary" /><p className="mt-2 text-on-surface">{collection.notes.length} notes</p></div>
+                      <div className="rounded-xl border border-outline-variant bg-surface p-3"><GalleryVertical className="h-4 w-4 text-primary" /><p className="mt-2 text-on-surface">{collection.flashcards.length} flashcards</p></div>
+                      <div className="rounded-xl border border-outline-variant bg-surface p-3"><HelpCircle className="h-4 w-4 text-primary" /><p className="mt-2 text-on-surface">{collection.quizzes.length} quizzes</p></div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-outline-variant bg-surface p-8 text-sm text-on-surface-variant">
+              No collections yet. Create your first collection to organize videos by subject.
+            </div>
+          )}
+
+          {selectedCollection && (
+            <div className="mt-6 rounded-2xl border border-outline-variant bg-surface p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h3 className="text-[22px] font-semibold text-on-surface">{selectedCollection.name}</h3>
+                  <p className="mt-1 text-sm text-on-surface-variant">{selectedCollection.description || 'No description provided.'}</p>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant bg-surface-container-lowest px-3 py-1 text-sm text-on-surface-variant">
+                  <BrainCircuit className="h-4 w-4 text-primary" /> Collection overview
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
+                <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
+                  <p className="text-sm text-on-surface-variant">Videos</p>
+                  <p className="mt-2 text-2xl font-semibold text-on-surface">{linkedVideos.length}</p>
+                </div>
+                <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
+                  <p className="text-sm text-on-surface-variant">Flashcards</p>
+                  <p className="mt-2 text-2xl font-semibold text-on-surface">{linkedFlashcards.length}</p>
+                </div>
+                <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
+                  <p className="text-sm text-on-surface-variant">Quizzes</p>
+                  <p className="mt-2 text-2xl font-semibold text-on-surface">{linkedQuizzes.length}</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                <div className="rounded-xl border border-outline-variant bg-surface p-4">
+                  <h4 className="text-sm font-medium text-on-surface">Videos</h4>
+                  <ul className="mt-3 space-y-2 text-sm text-on-surface-variant">
+                    {linkedVideos.length > 0 ? linkedVideos.map((video) => <li key={video.id}>{video.title}</li>) : <li>No videos yet.</li>}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-outline-variant bg-surface p-4">
+                  <h4 className="text-sm font-medium text-on-surface">Notes</h4>
+                  <ul className="mt-3 space-y-2 text-sm text-on-surface-variant">
+                    {linkedVideos.some((video) => video.notes) ? linkedVideos.filter((video) => video.notes).map((video) => <li key={video.id}>{video.notes}</li>) : <li>No notes yet.</li>}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-outline-variant bg-surface p-4">
+                  <h4 className="text-sm font-medium text-on-surface">Flashcards & quizzes</h4>
+                  <ul className="mt-3 space-y-2 text-sm text-on-surface-variant">
+                    {linkedFlashcards.length > 0 ? linkedFlashcards.map((card) => <li key={card.id}>{card.front}</li>) : <li>No flashcards yet.</li>}
+                    {linkedQuizzes.length > 0 ? linkedQuizzes.map((quiz) => <li key={quiz.id}>{quiz.title}</li>) : <li>No quizzes yet.</li>}
+                  </ul>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="p-4 flex flex-col flex-1">
-            <h3 className="font-headline-md text-[20px] text-on-surface mb-1 group-hover:text-primary transition-colors">Quarterly Earnings Q3</h3>
-            <p className="font-code-sm text-[13px] text-on-surface-variant mb-4 line-clamp-2">Executive summaries, Q&A sessions, and AI-extracted key performance indicators.</p>
-            <div className="mt-auto flex items-center justify-between pt-3 border-t border-outline-variant/50">
-              <div className="flex items-center gap-1.5 text-on-surface-variant">
-                <Video className="w-4 h-4" />
-                <span className="font-label-md text-[12px]">4 Videos</span>
-              </div>
-              <div className="font-code-sm text-[11px] text-outline">Updated Yesterday</div>
-            </div>
-          </div>
-        </div>
+          )}
+        </section>
 
-        {/* Collection 3 (AI Focus) */}
-        <div className="bg-surface-container-lowest border border-primary-fixed rounded-xl overflow-hidden hover:border-primary transition-colors group cursor-pointer flex flex-col h-full relative">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary-fixed z-10"></div>
-          <div className="h-32 relative bg-surface-container p-2 flex gap-1 overflow-hidden mt-1">
-            <div className="w-1/2 h-full rounded border border-outline-variant relative overflow-hidden">
-               <Image src="https://lh3.googleusercontent.com/aida-public/AB6AXuDY939F5P33jj-D8NUa5LspVfPrU_m2m3XKL-r0-j2SMaioPDKjcUzbeGP3xOLk9yHuLeOu4-Br7glu2DgzpoU_eO2tD32vWkoZkn0KFvgMk06gGT4OMKUKY7RcQdJ35UnJK1bKagTpB0qGL5O0T1hqw9Ty0n7YRwYugVuMaAcc4Qojl_of18idjiOvMGEX7s1IDEmxq0WMC0Df8bW5_JvC1zPaFHqI2jMRX6vkjlXJyMOYCVWNFxM4cXlY7YtWkGp3OsTm0jV_pxpy" alt="Thumb" fill className="object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300" referrerPolicy="no-referrer"/>
+        <aside className="space-y-4 rounded-[2rem] border border-outline-variant bg-surface p-5 xl:sticky xl:top-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <FolderPlus className="h-5 w-5 text-primary" />
+              <h3 className="text-[18px] font-semibold text-on-surface">Create collection</h3>
             </div>
-            <div className="w-1/2 h-full rounded border border-primary-fixed/50 bg-primary-fixed/10 relative overflow-hidden flex items-center justify-center flex-col">
-                <BrainCircuit className="text-primary mb-1 w-6 h-6" />
-                <span className="font-code-sm text-[10px] text-primary text-center leading-tight">AI Insights<br/>Generated</span>
-            </div>
+            <p className="mt-1 text-sm text-on-surface-variant">Start a new collection for AI, Python, Django, JavaScript, Machine Learning, Interview Prep, or College.</p>
           </div>
-          <div className="p-4 flex flex-col flex-1">
-            <div className="flex items-start justify-between">
-              <h3 className="font-headline-md text-[20px] text-on-surface mb-1 group-hover:text-primary transition-colors">Literature Review 2024</h3>
-              <span className="bg-primary-fixed text-on-primary-fixed px-1.5 py-0.5 rounded text-[10px] font-label-md border border-primary-fixed-dim">AI Active</span>
-            </div>
-            <p className="font-code-sm text-[13px] text-on-surface-variant mb-4 line-clamp-2">Automated summaries and knowledge graph extraction from uploaded conference presentations.</p>
-            <div className="mt-auto flex items-center justify-between pt-3 border-t border-outline-variant/50">
-              <div className="flex items-center gap-1.5 text-on-surface-variant">
-                <Video className="w-4 h-4" />
-                <span className="font-label-md text-[12px]">8 Videos</span>
-              </div>
-              <div className="font-code-sm text-[11px] text-outline">Updated Oct 12</div>
-            </div>
-          </div>
-        </div>
 
-        {/* Empty state */}
-        <div className="bg-surface-bright border border-dashed border-outline-variant rounded-xl overflow-hidden hover:border-primary hover:bg-surface-container-lowest transition-all group cursor-pointer flex flex-col h-full items-center justify-center p-6 text-center min-h-[280px]">
-          <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-4 group-hover:bg-primary-fixed transition-colors">
-            <FolderPlus className="w-8 h-8 text-outline group-hover:text-primary transition-colors" />
+          <div className="space-y-3">
+            <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-sm outline-none" placeholder="Collection name" />
+            <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="min-h-28 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-sm outline-none" placeholder="Description" />
+            <input value={form.tags} onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))} className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-sm outline-none" placeholder="Tags, comma separated" />
+            <button onClick={createCollection} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-medium text-on-primary transition-colors hover:bg-surface-tint">
+              <Plus className="h-4 w-4" /> Add Collection
+            </button>
           </div>
-          <h3 className="font-label-md text-[14px] text-on-surface mb-2">Create New Collection</h3>
-          <p className="font-code-sm text-[13px] text-on-surface-variant max-w-[200px]">Drag and drop videos here or click to create an empty folder.</p>
-        </div>
 
+          {state.collections.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-lowest p-4 text-sm text-on-surface-variant">
+              Collections are empty until you add one here or assign videos to a collection from the Library.
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   );
