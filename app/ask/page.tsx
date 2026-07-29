@@ -1,37 +1,25 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import { Bot, Library, MessageSquareText, Send, Video } from 'lucide-react';
+import { Bot, Link2, MessageSquareText, Send, Video } from 'lucide-react';
 import { createId } from '@/lib/workspace-store';
 import { useWorkspace } from '@/components/workspace-provider';
 
-function buildAnswer(question: string, mode: 'Current Video' | 'Collection' | 'Entire Library', videoTitle: string | null, collectionName: string | null, librarySize: number) {
-  const subject = mode === 'Current Video' ? videoTitle ?? 'the current video' : mode === 'Collection' ? collectionName ?? 'the selected collection' : 'the entire library';
+function buildAnswer(question: string, sourceType: 'video' | 'link', sourceLabel: string) {
+  const trimmedQuestion = question.trim();
+  const trimmedSource = sourceLabel.trim();
+  const sourceContext = trimmedSource ? `about “${trimmedSource}”` : `for your ${sourceType === 'video' ? 'video' : 'link'}`;
 
-  const opening = `Based on ${subject}, here is the best answer I can assemble from your stored learning data.`;
-  const followUp = question.trim() ? `You asked: "${question.trim()}".` : 'Ask a question to begin.';
-  const sourceNote = librarySize > 0 ? `I found ${librarySize} uploaded resource${librarySize === 1 ? '' : 's'} that can be used as sources.` : 'Add videos or collections to generate grounded answers, sources, and timestamps.';
-
-  return `${opening} ${followUp} ${sourceNote}`;
-}
-
-function pickRelatedVideos(question: string, mode: 'Current Video' | 'Collection' | 'Entire Library', currentVideoTitle: string | null, selectedCollectionName: string | null, videoTitles: string[]) {
-  const lowerQuestion = question.toLowerCase();
-  const explicitMatches = videoTitles.filter((title) => lowerQuestion.includes(title.toLowerCase()));
-
-  if (explicitMatches.length > 0) {
-    return explicitMatches.slice(0, 3);
+  if (!trimmedQuestion) {
+    return `Please ask a question ${sourceContext}.`;
   }
 
-  if (mode === 'Current Video' && currentVideoTitle) {
-    return [currentVideoTitle];
-  }
-
-  if (mode === 'Collection' && selectedCollectionName) {
-    return videoTitles.filter((title) => title.toLowerCase().includes(selectedCollectionName.toLowerCase())).slice(0, 3);
-  }
-
-  return videoTitles.slice(0, 3);
+  return [
+    `Here is a concise answer ${sourceContext}.`,
+    `You asked: “${trimmedQuestion}”.`,
+    'This lightweight experience uses the video or link you provide as the context for follow-up questions.',
+    'It is intentionally focused on the minimum workflow: add a source, ask a question, and get a helpful answer.',
+  ].join(' ');
 }
 
 export default function AskAIPage() {

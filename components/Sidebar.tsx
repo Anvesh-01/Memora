@@ -2,17 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Library, Folder, Network, Brain, Layers, HelpCircle } from 'lucide-react';
+import { Network, Brain, Settings } from 'lucide-react';
 import Image from 'next/image';
 
 const navItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Library', href: '/library', icon: Library },
-  { name: 'Collections', href: '/collections', icon: Folder },
-  { name: 'Knowledge Graph', href: '/knowledge', icon: Network },
   { name: 'Ask AI', href: '/ask', icon: Brain },
-  { name: 'Flashcards', href: '/flashcards', icon: Layers },
-  { name: 'Quizzes', href: '/quizzes', icon: HelpCircle },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function Sidebar() {
@@ -26,7 +21,7 @@ export function Sidebar() {
         </div>
         <div>
           <h1 className="font-headline-md text-[24px] font-bold text-primary dark:text-inverse-primary leading-tight">Mnemosyne</h1>
-          <p className="font-label-md text-[11px] text-on-surface-variant dark:text-surface-variant uppercase tracking-wider">AI Video Knowledge</p>
+          <p className="font-label-md text-[11px] text-on-surface-variant dark:text-surface-variant uppercase tracking-wider">Video Q&amp;A</p>
         </div>
       </div>
       <ul className="flex flex-col gap-1 px-4 mt-4 flex-1">

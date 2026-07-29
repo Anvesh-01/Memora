@@ -49,11 +49,11 @@ export type WorkspaceQuiz = {
 
 export type WorkspaceConversation = {
   id: string;
-  mode: 'Current Video' | 'Collection' | 'Entire Library';
+  sourceType: 'video' | 'link';
+  sourceLabel: string;
   question: string;
   answer: string;
   timestamp: string;
-  relatedVideos: string[];
   sources: string[];
 };
 
