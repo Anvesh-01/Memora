@@ -6,6 +6,7 @@ import { Network, Brain, Settings } from 'lucide-react';
 import Image from 'next/image';
 
 const navItems = [
+  {name: 'Dashboard', href: '/dashboard', icon: Network},
   { name: 'Ask AI', href: '/ask', icon: Brain },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
